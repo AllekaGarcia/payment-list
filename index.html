@@ -1,0 +1,46 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Payment List</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    input, button { margin: 5px; padding: 5px; }
+    .paid { text-decoration: line-through; color: gray; }
+  </style>
+</head>
+<body>
+  <h2>Payment List</h2>
+  <input type="text" id="nameInput" placeholder="Name">
+  <input type="number" id="priceInput" placeholder="Price">
+  <button onclick="addEntry()">Add</button>
+
+  <ul id="paymentList"></ul>
+
+  <script>
+    function addEntry() {
+      const name = document.getElementById("nameInput").value;
+      const price = document.getElementById("priceInput").value;
+      if (!name || !price) return;
+
+      const li = document.createElement("li");
+
+      const label = document.createElement("label");
+      label.innerText = `${name} - $${parseFloat(price).toFixed(2)} `;
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.onchange = function() {
+        label.className = checkbox.checked ? "paid" : "";
+      };
+
+      li.appendChild(checkbox);
+      li.appendChild(label);
+      document.getElementById("paymentList").appendChild(li);
+
+      document.getElementById("nameInput").value = '';
+      document.getElementById("priceInput").value = '';
+    }
+  </script>
+</body>
+</html>
