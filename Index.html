@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Payment Tracker</title>
+  <style>
+    body {
+      background-color: #f3e8ff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 700px;
+      width: 100%;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1, h2 {
+      text-align: center;
+      color: #6b21a8;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      text-align: left;
+    }
+    .paid-label {
+      text-decoration: line-through;
+      color: gray;
+    }
+    .form-section {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .form-section input {
+      padding: 8px;
+      flex: 1;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    .form-section button, .download-btn {
+      padding: 10px 20px;
+      background: #a78bfa;
+      border: none;
+      color: white;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .download-btn {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Payment Tracker</h1>
+
+    <div class="form-section">
+      <input type="text" id="nameInput" placeholder="Enter name">
+      <input type="text" id="priceInput" placeholder="Enter price (e.g. $25)">
+      <button onclick="addEntry()">Add</button>
+    </div>
+
+    <h2>Unpaid List</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Paid</th>
+          <th>Name</th>
+          <th>Price</th>
+        </tr>
+      </thead>
+      <tbody id="mainBody"></tbody>
+    </table>
+
+    <h2>Paid List</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Price</th>
+        </tr>
+      </thead>
+      <tbody id="paidBody"></tbody>
+    </table>
+
+    <button class="download-btn" onclick="downloadCSV()">Download Paid List</button>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'paymentData';
+
+    function loadData() {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    }
+
+    function saveData(data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function renderTables() {
+      const data = loadData();
+      const mainBody = document.getElementById('mainBody');
+      const paidBody = document.getElementById('paidBody');
+      mainBody.innerHTML = '';
+      paidBody.innerHTML = '';
+
+      data.forEach((item, index) => {
+        if (item.paid) {
+          const row = document.createElement('tr');
+          row.innerHTML = `<td>${item.name}</td><td>${item.price}</td>`;
+          paidBody.appendChild(row);
+        } else {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td><input type="checkbox" onchange="markPaid(${index})"></td>
+            <td>${item.name}</td>
+            <td>${item.price}</td>
+          `;
+          mainBody.appendChild(row);
+        }
+      });
+    }
+
+    function addEntry() {
+      const name = document.getElementById('nameInput').value.trim();
+      const price = document.getElementById('priceInput').value.trim();
+      if (!name || !price) {
+        alert("Please enter both name and price.");
+        return;
+      }
+
+      const data = loadData();
+      data.push({ name, price, paid: false });
+      saveData(data);
+      document.getElementById('nameInput').value = '';
+      document.getElementById('priceInput').value = '';
+      renderTables();
+    }
+
+    function markPaid(index) {
+      const data = loadData();
+      data[index].paid = true;
+      saveData(data);
+      renderTables();
+    }
+
+    function downloadCSV() {
+      const data = loadData().filter(item => item.paid);
+      let csv = "Name,Price\n";
+      data.forEach(item => {
+        csv += `${item.name},${item.price}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "paid_list.csv";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    window.onload = renderTables;
+  </script>
+</body>
+</html>
