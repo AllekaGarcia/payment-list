@@ -1,12 +1,53 @@
-
 <!DOCTYPE html>
 <html>
 <head>
   <title>Payment List</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    input, button { margin: 5px; padding: 5px; }
-    .paid { text-decoration: line-through; color: gray; }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #ffe6ea;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px;
+    }
+    h2 {
+      color: #d6336c;
+    }
+    input, button {
+      margin: 5px;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #d6336c;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #bf2b5b;
+    }
+    .paid {
+      text-decoration: line-through;
+      color: gray;
+    }
+    ul {
+      list-style-type: none;
+      padding: 0;
+      width: 300px;
+    }
+    li {
+      background: white;
+      margin: 5px 0;
+      padding: 10px;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
   </style>
 </head>
 <body>
@@ -18,29 +59,51 @@
   <ul id="paymentList"></ul>
 
   <script>
+    let payments = JSON.parse(localStorage.getItem('payments')) || [];
+
+    function savePayments() {
+      localStorage.setItem('payments', JSON.stringify(payments));
+    }
+
+    function renderList() {
+      const list = document.getElementById("paymentList");
+      list.innerHTML = '';
+
+      payments.forEach((entry, index) => {
+        const li = document.createElement("li");
+        const label = document.createElement("label");
+        label.innerText = `${entry.name} - $${parseFloat(entry.price).toFixed(2)} `;
+        if (entry.paid) label.classList.add("paid");
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = entry.paid;
+        checkbox.onchange = function () {
+          payments[index].paid = checkbox.checked;
+          savePayments();
+          renderList();
+        };
+
+        li.appendChild(label);
+        li.appendChild(checkbox);
+        list.appendChild(li);
+      });
+    }
+
     function addEntry() {
-      const name = document.getElementById("nameInput").value;
+      const name = document.getElementById("nameInput").value.trim();
       const price = document.getElementById("priceInput").value;
       if (!name || !price) return;
 
-      const li = document.createElement("li");
-
-      const label = document.createElement("label");
-      label.innerText = `${name} - $${parseFloat(price).toFixed(2)} `;
-
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.onchange = function() {
-        label.className = checkbox.checked ? "paid" : "";
-      };
-
-      li.appendChild(checkbox);
-      li.appendChild(label);
-      document.getElementById("paymentList").appendChild(li);
+      payments.push({ name, price, paid: false });
+      savePayments();
+      renderList();
 
       document.getElementById("nameInput").value = '';
       document.getElementById("priceInput").value = '';
     }
+
+    renderList();
   </script>
 </body>
 </html>
