@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Payment Tracker</title>
+  <style>
+    body {
+      background-color: #f3e8ff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      width: 100%;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #6b21a8;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      text-align: left;
+    }
+    .paid-table {
+      margin-top: 40px;
+    }
+    .paid-label {
+      text-decoration: line-through;
+      color: gray;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: #a78bfa;
+      border: none;
+      color: white;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Payment Tracker</h1>
+
+    <table id="mainTable">
+      <thead>
+        <tr>
+          <th>Paid</th>
+          <th>Name</th>
+          <th>Price</th>
+        </tr>
+      </thead>
+      <tbody id="mainBody">
+        <tr data-name="Alex" data-price="$20">
+          <td><input type="checkbox" onchange="markPaid(this)"></td>
+          <td>Alex</td>
+          <td>$20</td>
+        </tr>
+        <tr data-name="Jordan" data-price="$35">
+          <td><input type="checkbox" onchange="markPaid(this)"></td>
+          <td>Jordan</td>
+          <td>$35</td>
+        </tr>
+        <tr data-name="Taylor" data-price="$15">
+          <td><input type="checkbox" onchange="markPaid(this)"></td>
+          <td>Taylor</td>
+          <td>$15</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="paid-table">
+      <h2>Paid List</h2>
+      <table id="paidTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Price</th>
+          </tr>
+        </thead>
+        <tbody id="paidBody">
+        </tbody>
+      </table>
+      <button onclick="downloadCSV()">Download Paid List</button>
+    </div>
+  </div>
+
+  <script>
+    const paidKey = "paidPeople";
+
+    function getPaidPeople() {
+      return JSON.parse(localStorage.getItem(paidKey)) || [];
+    }
+
+    function savePaidPeople(paidPeople) {
+      localStorage.setItem(paidKey, JSON.stringify(paidPeople));
+    }
+
+    function markPaid(checkbox) {
+      const row = checkbox.closest("tr");
+      const name = row.dataset.name;
+      const price = row.dataset.price;
+
+      const paidPeople = getPaidPeople();
+      if (!paidPeople.find(p => p.name === name)) {
+        paidPeople.push({ name, price });
+        savePaidPeople(paidPeople);
+        updatePaidTable();
+        row.style.display = "none";
+      }
+    }
+
+    function updatePaidTable() {
+      const paidPeople = getPaidPeople();
+      const paidBody = document.getElementById("paidBody");
+      paidBody.innerHTML = "";
+      paidPeople.forEach(({ name, price }) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${name}</td><td>${price}</td>`;
+        paidBody.appendChild(row);
+      });
+
+      // Hide paid people in main table
+      const mainRows = document.querySelectorAll("#mainBody tr");
+      mainRows.forEach(row => {
+        const name = row.dataset.name;
+        if (paidPeople.find(p => p.name === name)) {
+          row.style.display = "none";
+          const checkbox = row.querySelector("input[type='checkbox']");
+          if (checkbox) checkbox.checked = true;
+          row.children[1].classList.add("paid-label");
+          row.children[2].classList.add("paid-label");
+        }
+      });
+    }
+
+    function downloadCSV() {
+      let csv = "Name,Price\n";
+      const rows = document.querySelectorAll("#paidBody tr");
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        csv += `${cells[0].innerText},${cells[1].innerText}\n`;
+      });
+
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "paid_list.csv";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    window.onload = updatePaidTable;
+  </script>
+</body>
+</html>
