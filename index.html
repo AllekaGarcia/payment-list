@@ -13,14 +13,14 @@
       padding: 20px;
     }
     .container {
-      max-width: 600px;
+      max-width: 700px;
       width: 100%;
       background: white;
       padding: 20px;
       border-radius: 12px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    h1 {
+    h1, h2 {
       text-align: center;
       color: #6b21a8;
     }
@@ -34,15 +34,22 @@
       border: 1px solid #d1d5db;
       text-align: left;
     }
-    .paid-table {
-      margin-top: 40px;
-    }
     .paid-label {
       text-decoration: line-through;
       color: gray;
     }
-    button {
+    .form-section {
+      display: flex;
+      gap: 10px;
       margin-top: 20px;
+    }
+    .form-section input {
+      padding: 8px;
+      flex: 1;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    .form-section button, .download-btn {
       padding: 10px 20px;
       background: #a78bfa;
       border: none;
@@ -51,13 +58,23 @@
       border-radius: 6px;
       cursor: pointer;
     }
+    .download-btn {
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Payment Tracker</h1>
 
-    <table id="mainTable">
+    <div class="form-section">
+      <input type="text" id="nameInput" placeholder="Enter name">
+      <input type="text" id="priceInput" placeholder="Enter price (e.g. $25)">
+      <button onclick="addEntry()">Add</button>
+    </div>
+
+    <h2>Unpaid List</h2>
+    <table>
       <thead>
         <tr>
           <th>Paid</th>
@@ -65,99 +82,89 @@
           <th>Price</th>
         </tr>
       </thead>
-      <tbody id="mainBody">
-        <tr data-name="Alex" data-price="$20">
-          <td><input type="checkbox" onchange="markPaid(this)"></td>
-          <td>Alex</td>
-          <td>$20</td>
-        </tr>
-        <tr data-name="Jordan" data-price="$35">
-          <td><input type="checkbox" onchange="markPaid(this)"></td>
-          <td>Jordan</td>
-          <td>$35</td>
-        </tr>
-        <tr data-name="Taylor" data-price="$15">
-          <td><input type="checkbox" onchange="markPaid(this)"></td>
-          <td>Taylor</td>
-          <td>$15</td>
-        </tr>
-      </tbody>
+      <tbody id="mainBody"></tbody>
     </table>
 
-    <div class="paid-table">
-      <h2>Paid List</h2>
-      <table id="paidTable">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Price</th>
-          </tr>
-        </thead>
-        <tbody id="paidBody">
-        </tbody>
-      </table>
-      <button onclick="downloadCSV()">Download Paid List</button>
-    </div>
+    <h2>Paid List</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Price</th>
+        </tr>
+      </thead>
+      <tbody id="paidBody"></tbody>
+    </table>
+
+    <button class="download-btn" onclick="downloadCSV()">Download Paid List</button>
   </div>
 
   <script>
-    const paidKey = "paidPeople";
+    const STORAGE_KEY = 'paymentData';
 
-    function getPaidPeople() {
-      return JSON.parse(localStorage.getItem(paidKey)) || [];
+    function loadData() {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
     }
 
-    function savePaidPeople(paidPeople) {
-      localStorage.setItem(paidKey, JSON.stringify(paidPeople));
+    function saveData(data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
 
-    function markPaid(checkbox) {
-      const row = checkbox.closest("tr");
-      const name = row.dataset.name;
-      const price = row.dataset.price;
+    function renderTables() {
+      const data = loadData();
+      const mainBody = document.getElementById('mainBody');
+      const paidBody = document.getElementById('paidBody');
+      mainBody.innerHTML = '';
+      paidBody.innerHTML = '';
 
-      const paidPeople = getPaidPeople();
-      if (!paidPeople.find(p => p.name === name)) {
-        paidPeople.push({ name, price });
-        savePaidPeople(paidPeople);
-        updatePaidTable();
-        row.style.display = "none";
-      }
-    }
-
-    function updatePaidTable() {
-      const paidPeople = getPaidPeople();
-      const paidBody = document.getElementById("paidBody");
-      paidBody.innerHTML = "";
-      paidPeople.forEach(({ name, price }) => {
-        const row = document.createElement("tr");
-        row.innerHTML = `<td>${name}</td><td>${price}</td>`;
-        paidBody.appendChild(row);
-      });
-
-      // Hide paid people in main table
-      const mainRows = document.querySelectorAll("#mainBody tr");
-      mainRows.forEach(row => {
-        const name = row.dataset.name;
-        if (paidPeople.find(p => p.name === name)) {
-          row.style.display = "none";
-          const checkbox = row.querySelector("input[type='checkbox']");
-          if (checkbox) checkbox.checked = true;
-          row.children[1].classList.add("paid-label");
-          row.children[2].classList.add("paid-label");
+      data.forEach((item, index) => {
+        if (item.paid) {
+          const row = document.createElement('tr');
+          row.innerHTML = `<td>${item.name}</td><td>${item.price}</td>`;
+          paidBody.appendChild(row);
+        } else {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td><input type="checkbox" onchange="markPaid(${index})"></td>
+            <td>${item.name}</td>
+            <td>${item.price}</td>
+          `;
+          mainBody.appendChild(row);
         }
       });
     }
 
+    function addEntry() {
+      const name = document.getElementById('nameInput').value.trim();
+      const price = document.getElementById('priceInput').value.trim();
+      if (!name || !price) {
+        alert("Please enter both name and price.");
+        return;
+      }
+
+      const data = loadData();
+      data.push({ name, price, paid: false });
+      saveData(data);
+      document.getElementById('nameInput').value = '';
+      document.getElementById('priceInput').value = '';
+      renderTables();
+    }
+
+    function markPaid(index) {
+      const data = loadData();
+      data[index].paid = true;
+      saveData(data);
+      renderTables();
+    }
+
     function downloadCSV() {
+      const data = loadData().filter(item => item.paid);
       let csv = "Name,Price\n";
-      const rows = document.querySelectorAll("#paidBody tr");
-      rows.forEach(row => {
-        const cells = row.querySelectorAll("td");
-        csv += `${cells[0].innerText},${cells[1].innerText}\n`;
+      data.forEach(item => {
+        csv += `${item.name},${item.price}\n`;
       });
 
-      const blob = new Blob([csv], { type: "text/csv" });
+      const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -166,7 +173,7 @@
       URL.revokeObjectURL(url);
     }
 
-    window.onload = updatePaidTable;
+    window.onload = renderTables;
   </script>
 </body>
 </html>
