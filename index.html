@@ -160,8 +160,11 @@
           contentDiv.className = "entry-content";
 
           const label = document.createElement("label");
-          label.innerText = `${name} - $${parseFloat(price).toFixed(2)} `;
-          if (paid) label.classList.add("paid");
+       label.innerText = `${name}`;
+           const span = document.createElement("span");
+             span.innerText = ` $${parseFloat(price).toFixed(2)}`;
+           label.appendChild(span);
+       if (paid) label.classList.add("paid");
 
           const checkbox = document.createElement("input");
           checkbox.type = "checkbox";
