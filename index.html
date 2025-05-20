@@ -15,6 +15,14 @@
     h2, h3 {
       color: #6a1b9a;
     }
+
+    .input-row {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
     input, button, select {
       margin: 5px;
       padding: 10px;
@@ -85,10 +93,15 @@
 </head>
 <body>
   <h2>Payment List</h2>
+  <div class="input-row">
   <input type="text" id="nameInput" placeholder="Name">
   <input type="number" id="priceInput" placeholder="Price">
+</div>
+<div class="input-row">
   <input type="date" id="dateInput">
   <button onclick="addEntry()">Add</button>
+</div>
+
 
   <select id="dateFilter" onchange="renderList()">
     <option value="all">All Dates</option>
@@ -110,10 +123,13 @@
 
   <script>
     let payments = JSON.parse(localStorage.getItem('payments')) || [];
-    let selected = [];
+let selected = JSON.parse(localStorage.getItem('selected')) || [];
 
     function savePayments() {
-      localStorage.setItem('payments', JSON.stringify(payments));
+  localStorage.setItem('payments', JSON.stringify(payments));
+  localStorage.setItem('selected', JSON.stringify(selected));
+}
+
     }
 
     function deleteEntry(index) {
@@ -241,6 +257,8 @@
     }
 
     renderList();
+    renderSelectedTable();
+
   </script>
 </body>
 </html>
