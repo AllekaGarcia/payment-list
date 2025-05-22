@@ -4,7 +4,7 @@
   <title>Payment List</title>
   <style>
     body {
-      background-image: url('Butterfly Frame.jpg');
+      background-image: url('Space-Background-Images.jpg');
       background-size: cover;
       background-repeat: no-repeat;
       background-attachment: fixed;
@@ -207,29 +207,69 @@
 
       // Render each date section
       datesToShow.forEach(date => {
-        if (!grouped[date]) return; // Skip if no entries for that date
+  if (!grouped[date]) return;
 
-        const dateHeader = document.createElement("h3");
-        dateHeader.innerText = date;
-        list.appendChild(dateHeader);
+  const dateHeader = document.createElement("h3");
+  dateHeader.innerText = date;
+  list.appendChild(dateHeader);
 
-        grouped[date].forEach(({ name, price, paid, index }) => {
-          const li = document.createElement("li");
-          const contentDiv = document.createElement("div");
-          contentDiv.className = "entry-content";
+  const table = document.createElement("table");
+  table.innerHTML = `
+    <thead><tr><th>Name</th><th>Price</th><th>Paid</th><th>Actions</th></tr></thead>
+    <tbody></tbody>
+  `;
+  const tbody = table.querySelector("tbody");
 
-          const label = document.createElement("label");
-          label.innerText = `${name} - $${parseFloat(price).toFixed(2)} `;
-          if (paid) label.classList.add("paid");
+  grouped[date].forEach(({ name, price, paid, index }) => {
+    const row = document.createElement("tr");
 
-          const checkbox = document.createElement("input");
-          checkbox.type = "checkbox";
-          checkbox.checked = paid;
-          checkbox.onchange = () => {
-            payments[index].paid = checkbox.checked;
-            savePayments();
-            renderList();
-          };
+    const nameCell = document.createElement("td");
+    nameCell.innerText = name;
+
+    const priceCell = document.createElement("td");
+    priceCell.innerText = `$${parseFloat(price).toFixed(2)}`;
+
+    const paidCell = document.createElement("td");
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = paid;
+    checkbox.onchange = () => {
+      payments[index].paid = checkbox.checked;
+      savePayments();
+      renderList();
+    };
+    paidCell.appendChild(checkbox);
+
+    const actionCell = document.createElement("td");
+    const selectBtn = document.createElement("button");
+    selectBtn.className = "select-btn";
+    selectBtn.innerText = "Select";
+    selectBtn.onclick = () => {
+      const [removed] = payments.splice(index, 1);
+      selected.push(removed);
+      savePayments();
+      renderList();
+      renderSelectedTable();
+    };
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "delete-btn";
+    deleteBtn.innerText = "Delete";
+    deleteBtn.onclick = () => deleteEntry(index);
+
+    actionCell.appendChild(selectBtn);
+    actionCell.appendChild(deleteBtn);
+
+    row.appendChild(nameCell);
+    row.appendChild(priceCell);
+    row.appendChild(paidCell);
+    row.appendChild(actionCell);
+    tbody.appendChild(row);
+  });
+
+  list.appendChild(table);
+});
+
 
           const selectBtn = document.createElement("button");
           selectBtn.className = "select-btn";
