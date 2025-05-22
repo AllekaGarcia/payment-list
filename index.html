@@ -3,63 +3,89 @@
 <head>
   <title>Payment List</title>
   <style>
-      body {
-  background-image: url('Butterfly Frame.jpg');
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-  color: black;
-  font-family: Arial, sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 40px;
-}
-
-h2, h3 {
-  color: black;
-}
-
+    body {
+      background-image: url('Butterfly Frame.jpg');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      color: black;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px;
     }
+
     h2, h3 {
       color: black;
     }
 
     .input-row {
-  display: flex;
-  flex-direction: row;
-  gap: 20px;
-  margin-bottom: 20px;
-  width: 100%;
-  justify-content: center;
-}
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+      margin-bottom: 20px;
+      width: 100%;
+      justify-content: center;
+    }
 
-input[type="text"],
-input[type="number"],
-input[type="date"],
-select {
-  padding: 12px 16px;
-  font-size: 16px;
-  width: 220px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-}
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    select {
+      padding: 12px 16px;
+      font-size: 16px;
+      width: 220px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
 
-button {
-  padding: 12px 24px;
-  font-size: 16px;
-  border-radius: 8px;
-  background-color: #8e24aa;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 8px;
+      background-color: #8e24aa;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
 
-button:hover {
-  background-color: #6a1b9a;
-}
+    button:hover {
+      background-color: #6a1b9a;
+    }
 
-</style>
+    .paid {
+      text-decoration: line-through;
+      color: gray;
+    }
+
+    .entry-content {
+      display: inline-block;
+    }
+
+    .delete-btn,
+    .select-btn {
+      margin-left: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+
+    .print-section {
+      margin-top: 20px;
+    }
+  </style>
+  <!-- SheetJS for Excel export -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
   <h2>Payment List</h2>
@@ -96,6 +122,9 @@ button:hover {
   </div>
 
   <script>
+    // -----------------------------
+    // Data storage / retrieval
+    // -----------------------------
     let payments = JSON.parse(localStorage.getItem('payments')) || [];
     let selected = JSON.parse(localStorage.getItem('selected')) || [];
     let hasDownloaded = false;
@@ -113,41 +142,56 @@ button:hover {
       localStorage.setItem('selected', JSON.stringify(selected));
     }
 
+    // -----------------------------
+    // Excel download using SheetJS
+    // -----------------------------
     function downloadPayments() {
-      const data = { payments, selected };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "payments.json";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const wb = XLSX.utils.book_new();
+
+      const wsPayments = XLSX.utils.json_to_sheet(payments);
+      XLSX.utils.book_append_sheet(wb, wsPayments, "Payments");
+
+      const wsSelected = XLSX.utils.json_to_sheet(selected);
+      XLSX.utils.book_append_sheet(wb, wsSelected, "Selected");
+
+      XLSX.writeFile(wb, "payments.xlsx");
       hasDownloaded = true;
     }
 
+    // -----------------------------
+    // CRUD helpers
+    // -----------------------------
     function deleteEntry(index) {
       payments.splice(index, 1);
       savePayments();
       renderList();
     }
 
-    
+    function removeFromSelected(index) {
+      selected.splice(index, 1);
+      savePayments();
+      renderSelectedTable();
+    }
+
+    // -----------------------------
+    // Render functions
+    // -----------------------------
     function renderList() {
       const list = document.getElementById("paymentList");
       const dateFilter = document.getElementById("dateFilter").value;
       list.innerHTML = '';
 
+      // Group payments by date
       const grouped = {};
       payments.forEach((entry, index) => {
         if (!grouped[entry.date]) grouped[entry.date] = [];
         grouped[entry.date].push({ ...entry, index });
       });
 
+      // Populate date filter options (avoid duplicates)
       const filterSelect = document.getElementById("dateFilter");
       const currentOptions = Array.from(filterSelect.options).map(o => o.value);
-      Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a)).forEach(date => {
+      Object.keys(grouped).forEach(date => {
         if (!currentOptions.includes(date)) {
           const option = document.createElement("option");
           option.value = date;
@@ -156,12 +200,14 @@ button:hover {
         }
       });
 
+      // Determine which dates to show
       const datesToShow = dateFilter === "all"
         ? Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a))
         : [dateFilter];
 
+      // Render each date section
       datesToShow.forEach(date => {
-        if (!grouped[date]) return;
+        if (!grouped[date]) return; // Skip if no entries for that date
 
         const dateHeader = document.createElement("h3");
         dateHeader.innerText = date;
@@ -169,7 +215,6 @@ button:hover {
 
         grouped[date].forEach(({ name, price, paid, index }) => {
           const li = document.createElement("li");
-
           const contentDiv = document.createElement("div");
           contentDiv.className = "entry-content";
 
@@ -180,34 +225,28 @@ button:hover {
           const checkbox = document.createElement("input");
           checkbox.type = "checkbox";
           checkbox.checked = paid;
-          checkbox.onchange = function () {
+          checkbox.onchange = () => {
             payments[index].paid = checkbox.checked;
             savePayments();
             renderList();
           };
 
-          const deleteBtn = document.createElement("button");
-          deleteBtn.className = "delete-btn";
-          deleteBtn.innerText = "Delete";
-          deleteBtn.onclick = function () {
-            deleteEntry(index);
-          };
-
           const selectBtn = document.createElement("button");
           selectBtn.className = "select-btn";
           selectBtn.innerText = "Select";
-          selectBtn.onclick = function () {
+          selectBtn.onclick = () => {
             const [removed] = payments.splice(index, 1);
             selected.push(removed);
             savePayments();
             renderList();
             renderSelectedTable();
+          };
 
-document.getElementById("paymentForm").addEventListener("submit", function (e) {
-  e.preventDefault();
-  addEntry();
-});
-
+          const deleteBtn = document.createElement("button");
+          deleteBtn.className = "delete-btn";
+          deleteBtn.innerText = "Delete";
+          deleteBtn.onclick = () => {
+            deleteEntry(index);
           };
 
           contentDiv.appendChild(label);
@@ -218,99 +257,6 @@ document.getElementById("paymentForm").addEventListener("submit", function (e) {
           list.appendChild(li);
         });
       });
-    }
-
-      });
-
-      const datesToShow = dateFilter === "all" ? Object.keys(grouped).sort() : [dateFilter];
-
-      datesToShow.forEach(date => {
-        if (!grouped[date]) return;
-
-        const dateHeader = document.createElement("h3");
-        dateHeader.innerText = date;
-        list.appendChild(dateHeader);
-
-        grouped[date].forEach(({ name, price, paid, index }) => {
-          const li = document.createElement("li");
-
-          const contentDiv = document.createElement("div");
-          contentDiv.className = "entry-content";
-
-          const label = document.createElement("label");
-          label.innerText = `${name} - $${parseFloat(price).toFixed(2)} `;
-          if (paid) label.classList.add("paid");
-
-          const checkbox = document.createElement("input");
-          checkbox.type = "checkbox";
-          checkbox.checked = paid;
-          checkbox.onchange = function () {
-            payments[index].paid = checkbox.checked;
-            savePayments();
-            renderList();
-          };
-
-          const deleteBtn = document.createElement("button");
-          deleteBtn.className = "delete-btn";
-          deleteBtn.innerText = "Delete";
-          deleteBtn.onclick = function () {
-            deleteEntry(index);
-          };
-
-          const selectBtn = document.createElement("button");
-          selectBtn.className = "select-btn";
-          selectBtn.innerText = "Select";
-          selectBtn.onclick = function () {
-            const [removed] = payments.splice(index, 1);
-            selected.push(removed);
-            savePayments();
-            renderList();
-            renderSelectedTable();
-
-document.getElementById("paymentForm").addEventListener("submit", function (e) {
-  e.preventDefault();
-  addEntry();
-});
-
-          };
-
-          contentDiv.appendChild(label);
-          contentDiv.appendChild(checkbox);
-          li.appendChild(contentDiv);
-          li.appendChild(selectBtn);
-          li.appendChild(deleteBtn);
-          list.appendChild(li);
-        });
-      });
-    }
-
-    function addEntry() {
-      const name = document.getElementById("nameInput").value.trim();
-      const price = document.getElementById("priceInput").value;
-      const dateInput = document.getElementById("dateInput").value;
-      if (!name || !price) return;
-
-      const date = dateInput || new Date().toISOString().split('T')[0];
-
-      payments.push({ name, price, paid: false, date });
-      savePayments();
-      renderList();
-
-      document.getElementById("nameInput").value = '';
-      document.getElementById("priceInput").value = '';
-      document.getElementById("dateInput").value = '';
-    }
-
-    function removeFromSelected(index) {
-      selected.splice(index, 1);
-      savePayments();
-      renderSelectedTable();
-
-document.getElementById("paymentForm").addEventListener("submit", function (e) {
-  e.preventDefault();
-  addEntry();
-});
-
     }
 
     function renderSelectedTable() {
@@ -328,14 +274,39 @@ document.getElementById("paymentForm").addEventListener("submit", function (e) {
       });
     }
 
+    // -----------------------------
+    // Add new entry
+    // -----------------------------
+    function addEntry() {
+      const name = document.getElementById("nameInput").value.trim();
+      const price = document.getElementById("priceInput").value;
+      const dateInput = document.getElementById("dateInput").value;
+      if (!name || !price) return;
+
+      const date = dateInput || new Date().toISOString().split('T')[0];
+      payments.push({ name, price, paid: false, date });
+      savePayments();
+      renderList();
+
+      // Clear inputs
+      document.getElementById("nameInput").value = '';
+      document.getElementById("priceInput").value = '';
+      document.getElementById("dateInput").value = '';
+    }
+
+    // -----------------------------
+    // ONE event listener for the form
+    // -----------------------------
+    document.getElementById("paymentForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      addEntry();
+    });
+
+    // -----------------------------
+    // Initial render
+    // -----------------------------
     renderList();
     renderSelectedTable();
-
-document.getElementById("paymentForm").addEventListener("submit", function (e) {
-  e.preventDefault();
-  addEntry();
-});
-
   </script>
 </body>
 </html>
