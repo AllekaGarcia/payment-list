@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Payment List</title>
+  <style>
+    body {
+     background-image: url('pink background.jpg');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  color: black;
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px;
+    }
+    h2, h3 {
+      color: black;
+    }
+</style>
+</head>
+<body>
+  <h2>Payment List</h2>
+
+  <form onsubmit="addEntry(); return false;">
+    <div class="input-row">
+      <input type="text" id="nameInput" placeholder="Name">
+      <input type="number" id="priceInput" placeholder="Price">
+    </div>
+    <div class="input-row">
+      <input type="date" id="dateInput">
+      <button type="submit">Add</button>
+    </div>
+  </form>
+
+  <button onclick="downloadPayments()">Download Data</button>
+
+  <select id="dateFilter" onchange="renderList()">
+    <option value="all">All Dates</option>
+  </select>
+
+  <ul id="paymentList"></ul>
+
+  <h3>Selected for Print</h3>
+  <table id="selectedTable">
+    <thead>
+      <tr><th>Name</th><th>Price</th><th>Date</th><th>Action</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div class="print-section">
+    <button onclick="window.print()">Print Selected</button>
+  </div>
+
+  <script>
+    let payments = JSON.parse(localStorage.getItem('payments')) || [];
+    let selected = JSON.parse(localStorage.getItem('selected')) || [];
+    let hasDownloaded = false;
+
+    window.addEventListener("beforeunload", function (e) {
+      if (!hasDownloaded && (payments.length > 0 || selected.length > 0)) {
+        const confirmationMessage = "You have unsaved data. Are you sure you want to leave without downloading it?";
+        (e || window.event).returnValue = confirmationMessage;
+        return confirmationMessage;
+      }
+    });
+
+    function savePayments() {
+      localStorage.setItem('payments', JSON.stringify(payments));
+      localStorage.setItem('selected', JSON.stringify(selected));
+    }
+
+    function downloadPayments() {
+      const data = { payments, selected };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "payments.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      hasDownloaded = true;
+    }
+
+    function deleteEntry(index) {
+      payments.splice(index, 1);
+      savePayments();
+      renderList();
+    }
+
+    
+    function renderList() {
+      const list = document.getElementById("paymentList");
+      const dateFilter = document.getElementById("dateFilter").value;
+      list.innerHTML = '';
+
+      const grouped = {};
+      payments.forEach((entry, index) => {
+        if (!grouped[entry.date]) grouped[entry.date] = [];
+        grouped[entry.date].push({ ...entry, index });
+      });
+
+      const filterSelect = document.getElementById("dateFilter");
+      const currentOptions = Array.from(filterSelect.options).map(o => o.value);
+      Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a)).forEach(date => {
+        if (!currentOptions.includes(date)) {
+          const option = document.createElement("option");
+          option.value = date;
+          option.innerText = date;
+          filterSelect.appendChild(option);
+        }
+      });
+
+      const datesToShow = dateFilter === "all"
+        ? Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a))
+        : [dateFilter];
+
+      datesToShow.forEach(date => {
+        if (!grouped[date]) return;
+
+        const dateHeader = document.createElement("h3");
+        dateHeader.innerText = date;
+        list.appendChild(dateHeader);
+
+        grouped[date].forEach(({ name, price, paid, index }) => {
+          const li = document.createElement("li");
+
+          const contentDiv = document.createElement("div");
+          contentDiv.className = "entry-content";
+
+          const label = document.createElement("label");
+          label.innerText = `${name} - $${parseFloat(price).toFixed(2)} `;
+          if (paid) label.classList.add("paid");
+
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = paid;
+          checkbox.onchange = function () {
+            payments[index].paid = checkbox.checked;
+            savePayments();
+            renderList();
+          };
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.className = "delete-btn";
+          deleteBtn.innerText = "Delete";
+          deleteBtn.onclick = function () {
+            deleteEntry(index);
+          };
+
+          const selectBtn = document.createElement("button");
+          selectBtn.className = "select-btn";
+          selectBtn.innerText = "Select";
+          selectBtn.onclick = function () {
+            const [removed] = payments.splice(index, 1);
+            selected.push(removed);
+            savePayments();
+            renderList();
+            renderSelectedTable();
+          };
+
+          contentDiv.appendChild(label);
+          contentDiv.appendChild(checkbox);
+          li.appendChild(contentDiv);
+          li.appendChild(selectBtn);
+          li.appendChild(deleteBtn);
+          list.appendChild(li);
+        });
+      });
+    }
+
+      });
+
+      const datesToShow = dateFilter === "all" ? Object.keys(grouped).sort() : [dateFilter];
+
+      datesToShow.forEach(date => {
+        if (!grouped[date]) return;
+
+        const dateHeader = document.createElement("h3");
+        dateHeader.innerText = date;
+        list.appendChild(dateHeader);
+
+        grouped[date].forEach(({ name, price, paid, index }) => {
+          const li = document.createElement("li");
+
+          const contentDiv = document.createElement("div");
+          contentDiv.className = "entry-content";
+
+          const label = document.createElement("label");
+          label.innerText = `${name} - $${parseFloat(price).toFixed(2)} `;
+          if (paid) label.classList.add("paid");
+
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = paid;
+          checkbox.onchange = function () {
+            payments[index].paid = checkbox.checked;
+            savePayments();
+            renderList();
+          };
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.className = "delete-btn";
+          deleteBtn.innerText = "Delete";
+          deleteBtn.onclick = function () {
+            deleteEntry(index);
+          };
+
+          const selectBtn = document.createElement("button");
+          selectBtn.className = "select-btn";
+          selectBtn.innerText = "Select";
+          selectBtn.onclick = function () {
+            const [removed] = payments.splice(index, 1);
+            selected.push(removed);
+            savePayments();
+            renderList();
+            renderSelectedTable();
+          };
+
+          contentDiv.appendChild(label);
+          contentDiv.appendChild(checkbox);
+          li.appendChild(contentDiv);
+          li.appendChild(selectBtn);
+          li.appendChild(deleteBtn);
+          list.appendChild(li);
+        });
+      });
+    }
+
+    function addEntry() {
+      const name = document.getElementById("nameInput").value.trim();
+      const price = document.getElementById("priceInput").value;
+      const dateInput = document.getElementById("dateInput").value;
+      if (!name || !price) return;
+
+      const date = dateInput || new Date().toISOString().split('T')[0];
+
+      payments.push({ name, price, paid: false, date });
+      savePayments();
+      renderList();
+
+      document.getElementById("nameInput").value = '';
+      document.getElementById("priceInput").value = '';
+      document.getElementById("dateInput").value = '';
+    }
+
+    function removeFromSelected(index) {
+      selected.splice(index, 1);
+      savePayments();
+      renderSelectedTable();
+    }
+
+    function renderSelectedTable() {
+      const tbody = document.querySelector("#selectedTable tbody");
+      tbody.innerHTML = '';
+      selected.forEach((entry, i) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${entry.name}</td>
+          <td>$${parseFloat(entry.price).toFixed(2)}</td>
+          <td>${entry.date}</td>
+          <td><button class="delete-btn" onclick="removeFromSelected(${i})">Delete</button></td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    renderList();
+    renderSelectedTable();
+  </script>
+</body>
+</html>
