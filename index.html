@@ -15,10 +15,6 @@
       align-items: center;
       padding: 40px;
     }
-
-    p {
-  font-weight: bold;
-}
     h2, h3 { color: black; }
     .input-row {
       display: flex;
@@ -135,8 +131,6 @@
       savePayments();
       renderList();
     }
-
-    <strong>This is bold text</strong>
 
     function removeFromSelected(index) {
       selected.splice(index, 1);
@@ -260,9 +254,15 @@
       const name = document.getElementById("nameInput").value.trim();
       const price = document.getElementById("priceInput").value;
       const dateInput = document.getElementById("dateInput").value;
-      if (!name || isNaN(parseFloat(price))) return;
+      const priceValue = parseFloat(price);
+
+      if (!name || isNaN(priceValue)) {
+        alert("Please enter a valid name and price (e.g., 0.75).");
+        return;
+      }
+
       const date = dateInput || new Date().toISOString().split('T')[0];
-      payments.push({ name, price: parseFloat(price), paid: false, date });
+      payments.push({ name, price: priceValue, paid: false, date });
       savePayments();
       renderList();
       document.getElementById("nameInput").value = '';
@@ -280,3 +280,4 @@
   </script>
 </body>
 </html>
+
